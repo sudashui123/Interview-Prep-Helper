@@ -10,10 +10,7 @@ import com.yupi.mianshiya.common.ResultUtils;
 import com.yupi.mianshiya.constant.UserConstant;
 import com.yupi.mianshiya.exception.BusinessException;
 import com.yupi.mianshiya.exception.ThrowUtils;
-import com.yupi.mianshiya.model.dto.question.QuestionAddRequest;
-import com.yupi.mianshiya.model.dto.question.QuestionEditRequest;
-import com.yupi.mianshiya.model.dto.question.QuestionQueryRequest;
-import com.yupi.mianshiya.model.dto.question.QuestionUpdateRequest;
+import com.yupi.mianshiya.model.dto.question.*;
 import com.yupi.mianshiya.model.entity.Question;
 import com.yupi.mianshiya.model.entity.User;
 import com.yupi.mianshiya.model.vo.QuestionVO;
@@ -258,6 +255,13 @@ public class QuestionController {
 
     // endregion
 
-    //测试一下
+    @PostMapping("/delete/batch")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public BaseResponse<Boolean> batchDeleteQuestion(@RequestBody QuestionBatchDeleteRequest questionBatchDeleteRequest) {
+        ThrowUtils.throwIf(questionBatchDeleteRequest == null, ErrorCode.PARAMS_ERROR, "删除题目列表为空");
+        questionService.batchDeleteQuestions(questionBatchDeleteRequest.getQuestionIdList());
+        return ResultUtils.success(true);
+    }
+
 
 }
