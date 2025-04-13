@@ -228,16 +228,19 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl<QuestionBankQue
         LambdaQueryWrapper<QuestionBankQuestion> lambdaQueryWrapper = Wrappers.lambdaQuery(QuestionBankQuestion.class)
                         .eq(QuestionBankQuestion::getQuestionBankId, questionBankId)
                 .notIn(QuestionBankQuestion::getQuestionId, validQuestionIdList);
-        List<QuestionBankQuestion> notExistQuestionList = this.list(lambdaQueryWrapper);
-        validQuestionIdList = notExistQuestionList.stream()
-                .map(QuestionBankQuestion::getQuestionId)
-                .collect(Collectors.toList());
-        ThrowUtils.throwIf(validQuestionIdList.isEmpty(), ErrorCode.PARAMS_ERROR, "所有题目都存在于题库中");
-
-        //检查题库是否存在
+        List<QuestionBankQuestion> existQuestionList = this.list(lambdaQueryWrapper);
+        // 已存在于题库中的题目 id
+        Set<Long> existQuestionIdSet = existQuestionList.stream()
+                .map(QuestionBankQuestion::getId)
+                .collect(Collectors.toSet());
+        // 已存在于题库中的题目 id，不需要再次添加
+        validQuestionIdList = validQuestionIdList.stream().filter(questionId -> {
+            return !existQuestionIdSet.contains(questionId);
+        }).collect(Collectors.toList());
+        ThrowUtils.throwIf(CollUtil.isEmpty(validQuestionIdList), ErrorCode.PARAMS_ERROR, "所有题目都已存在于题库中");
+        // 检查题库 id 是否存在
         QuestionBank questionBank = questionBankService.getById(questionBankId);
-        ThrowUtils.throwIf(questionBank == null, ErrorCode.PARAMS_ERROR, "题库不存在");
-
+        ThrowUtils.throwIf(questionBank == null, ErrorCode.NOT_FOUND_ERROR, "题库不存在");
         // 自定义线程池
         ThreadPoolExecutor customExecutor = new ThreadPoolExecutor(
                 4,                         // 核心线程数
@@ -309,8 +312,6 @@ public class QuestionBankQuestionServiceImpl extends ServiceImpl<QuestionBankQue
             log.error("添加题目到题库时发生未知错误，错误信息: {}", e.getMessage());
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "向题库添加题目失败");
         }
-
-
     }
 
     @Override
